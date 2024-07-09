@@ -38,7 +38,39 @@ export default () => {
         });
 
         await initializeRunnableSnippets(initialPayload);
+
+        // Function to find the code for the keys in ScriptLabCustomFunctionsDictionary
+        function findCodeForCustomFunctions(payload, key) {
+          // Iterate through the typescriptMetadata array
+          for (const metadata of payload.typescriptMetadata) {
+            // Iterate through the functions array within the current metadata object
+            for (const func of metadata.functions) {
+              // Check if the current function's fullId is equals to what we looking for
+              if (func.fullId == key) {
+                // If found, return the code associated with this metadata
+                let sourceCode = metadata.code;
+                for (const func of metadata.functions) {
+                  const fullDisplayName = func.fullDisplayName;
+                  const javascriptFunctionName = func.javascriptFunctionName;
+                  sourceCode = `
+                  ${sourceCode}
+
+                  CustomFunctions.associate("${fullDisplayName}", ${javascriptFunctionName});
+                  `;
+                }
+                return sourceCode;
+              }
+            }
+          }
+          // If no matching function is found in the dictionary, return null or an appropriate message
+          return null;
+        }
+
         for (const key in ScriptLabCustomFunctionsDictionary) {
+          ScriptLabCustomFunctionsDictionary[key]["fileSourceCode"] = findCodeForCustomFunctions(
+            payload,
+            key,
+          );
           CustomFunctions.associate(key, ScriptLabCustomFunctionsDictionary[key]);
         }
         // TODO: (with Shaofeng) temporary hack, will definitely need to be removed once it's not either/or
